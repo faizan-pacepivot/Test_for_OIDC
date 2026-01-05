@@ -1,0 +1,26 @@
+name: AWS Deploy using OIDC
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  id-token: write   
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::924210590962:role/OIDC
+          aws-region: us-east-1
+
+      - name: Verify AWS Access
+        run: aws sts get-caller-identity
