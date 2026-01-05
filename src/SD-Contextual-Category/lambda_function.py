@@ -277,8 +277,9 @@ def lambda_handler(event, context):
     }
 
 
-# ------------------ LOCAL TEST ------------------
+# ------------------ LOCAL TEST  ------------------
 if __name__ == "__main__":
     print("DEBUG STARTED")
     result = lambda_handler({}, {})
     print("FINAL RESULT:", result)
+# 
