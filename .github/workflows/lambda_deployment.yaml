@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 permissions:
-  id-token: write   # 🔴 MUST
+  id-token: write   # 🔴 MUST for OIDC
   contents: read
 
 jobs:
@@ -26,16 +26,26 @@ jobs:
           audience: sts.amazonaws.com
           output-env-credentials: true
 
-      # Step 3: List files for debugging (optional)
+      # Step 3: List repo files (optional, for debugging)
       - name: List repo files
         run: ls -R
 
-      # Step 4: Zip Lambda code (src/lambda_function.py)
+      # Step 4: Check src folder contents
+      - name: List src folder
+        run: ls -R src
+
+      # Step 5: Zip Lambda function
       - name: Zip Lambda function
         run: zip -j function.zip src/lambda_function.py
 
-      # Step 5: Update Lambda function
+      # Step 6: Check zip contents (optional)
+      - name: Check zip contents
+        run: unzip -l function.zip
+
+      # Step 7: Update Lambda function
       - name: Update Lambda function code
-        run: |
-          aws lambda update-function-code \
-            --function-name Test_for_OIDC \
+        run: aws lambda update-function-code --function-name Test_for_OIDC --zip-file fileb://function.zip
+
+      # Step 8: Verify Lambda update
+      - name: Verify Lambda update
+        run: aws lambda get-function --function-name Test_for_OIDC
