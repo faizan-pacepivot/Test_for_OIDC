@@ -1,11 +1,11 @@
-name: AWS Deploy using OIDC
+name: AWS Lambda Deploy using OIDC
 
 on:
   push:
     branches: [ main ]
 
 permissions:
-  id-token: write   
+  id-token: write
   contents: read
 
 jobs:
@@ -21,6 +21,17 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::924210590962:role/OIDC
           aws-region: us-east-1
+          audience: sts.amazonaws.com
+          output-env-credentials: true
 
-      - name: Verify AWS Access
-        run: aws sts get-caller-identity
+      - name: Zip Lambda function
+        run: zip function.zip lambda_function.py
+
+      - name: Update Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name my-lambda-function \
+            --zip-file fileb://function.zip
+
+      - name: Verify Lambda update
+        run: aws lambda get-function --function-name Test_for_OIDC
