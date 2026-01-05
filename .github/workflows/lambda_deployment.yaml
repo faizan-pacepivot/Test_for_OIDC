@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 permissions:
-  id-token: write   
+  id-token: write
   contents: read
 
 jobs:
@@ -13,11 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Configure AWS Credentials via OIDC
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -26,26 +24,20 @@ jobs:
           audience: sts.amazonaws.com
           output-env-credentials: true
 
-      # Step 3: List repo files (optional, for debugging)
-      - name: List repo files
-        run: ls -R
+      # --- Loop for multiple Lambda functions ---
+      - name: Deploy all Lambda functions
+        run: |
+          # Campaign 1
+          zip -j campaign1.zip src/SD-Audience/lambda_function.py
+          aws lambda update-function-code --function-name SD-Audience --zip-file fileb://campaign1.zip
 
-      # Step 4: Check src folder contents
-      - name: List src folder
-        run: ls -R src
+          # Campaign 2
+          zip -j campaign2.zip src/SD-Contextual-Category/lambda_function.py
+          aws lambda update-function-code --function-name SD-Contextual-Category --zip-file fileb://campaign2.zip
 
-      # Step 5: Zip Lambda function
-      - name: Zip Lambda function
-        run: zip -j function.zip src/lambda_function.py
 
-      # Step 6: Check zip contents (optional)
-      - name: Check zip contents
-        run: unzip -l function.zip
-
-      # Step 7: Update Lambda function
-      - name: Update Lambda function code
-        run: aws lambda update-function-code --function-name Test_for_OIDC --zip-file fileb://function.zip
-
-      # Step 8: Verify Lambda update
-      - name: Verify Lambda update
-        run: aws lambda get-function --function-name Test_for_OIDC
+      - name: Verify Lambda updates
+        run: |
+          aws lambda get-function --function-name SD-Audience
+          aws lambda get-function --function-name SD-Contextual-Category
+        
