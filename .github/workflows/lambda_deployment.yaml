@@ -28,12 +28,12 @@ jobs:
       - name: Deploy all Lambda functions
         run: |
           # Campaign 1
-          zip -j campaign1.zip src/SD-Audience/lambda_function.py
-          aws lambda update-function-code --function-name SD-Audience --zip-file fileb://campaign1.zip
+          zip -j SD-Audience.zip src/SD-Audience/lambda_function.py
+          aws lambda update-function-code --function-name SD-Audience --zip-file fileb://SD-Audience.zip
 
           # Campaign 2
-          zip -j campaign2.zip src/SD-Contextual-Category/lambda_function.py
-          aws lambda update-function-code --function-name SD-Contextual-Category --zip-file fileb://campaign2.zip
+          zip -j SD-Contextual-Category.zip src/SD-Contextual-Category/lambda_function.py
+          aws lambda update-function-code --function-name SD-Contextual-Category --zip-file fileb://SD-Contextual-Category.zip
 
 
       - name: Verify Lambda updates
