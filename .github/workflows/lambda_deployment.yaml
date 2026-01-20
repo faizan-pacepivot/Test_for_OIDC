@@ -59,6 +59,16 @@ jobs:
           zip -j SD-Contextual-Category.zip src/SD/SD-Contextual-Category/lambda_function.py
           aws lambda update-function-code --function-name SD-Contextual-Category --zip-file fileb://SD-Contextual-Category.zip
 
+          # SB
+          zip -j SBV_Single_Asin_Single_Keyword.zip src/SB/SBV_Single_Asin_Single_Keyword/lambda_function.py
+          aws lambda update-function-code --function-name SBV_Single_Asin_Single_Keyword --zip-file fileb://SBV_Single_Asin_Single_Keyword.zip
+
+          zip -j SB-Single_Asin-Single-Keyword-store-Spotlight.zip src/SB/SB-Single_Asin-Single-Keyword-store-Spotlight/lambda_function.py
+          aws lambda update-function-code --function-name SB-Single_Asin-Single-Keyword-store-Spotlight --zip-file fileb://SB-Single_Asin-Single-Keyword-store-Spotlight.zip
+
+          zip -j SB-Single_Asin-Single-Keyword-Prod-Collection.zip src/SB/SB-Single_Asin-Single-Keyword-Prod-Collection/lambda_function.py
+          aws lambda update-function-code --function-name SB-Single_Asin-Single-Keyword-Prod-Collection --zip-file fileb://SB-Single_Asin-Single-Keyword-Prod-Collection.zip
+
 
       - name: Verify Lambda updates
         run: |
@@ -77,5 +87,10 @@ jobs:
           aws lambda get-function --function-name SD-Audience
           aws lambda get-function --function-name SD-Contextual-Prod
           aws lambda get-function --function-name SD-Contextual-Category
+
+          # SB
+          aws lambda get-function --function-name SBV_Single_Asin_Single_Keyword
+          aws lambda get-function --function-name SB-Single_Asin-Single-Keyword-store-Spotlight
+          aws lambda get-function --function-name SB-Single_Asin-Single-Keyword-Prod-Collection
 
         
