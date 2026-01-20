@@ -40,4 +40,11 @@ jobs:
         run: |
           aws lambda get-function --function-name SD-Audience
           aws lambda get-function --function-name SD-Contextual-Category
+          aws lambda get-function --function-name Single_Asin_Multi_Product
+          aws lambda get-function --function-name Single_Assign_Single_Keywords
+          aws lambda get-function --function-name Single_Asin_Single_Product
+          aws lambda get-function --function-name Multi_asin_Multi_Keywords
+          aws lambda get-function --function-name Multi_Asin_Multi_Product
+          aws lambda get-function --function-name Single_Assign_Multi_Keyword
+
         
