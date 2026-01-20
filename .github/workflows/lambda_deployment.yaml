@@ -35,7 +35,22 @@ jobs:
           zip -j SD-Contextual-Category.zip src/SD-Contextual-Category/lambda_function.py
           aws lambda update-function-code --function-name SD-Contextual-Category --zip-file fileb://SD-Contextual-Category.zip
 
-                    # Campaign 2
+          # SP
+          zip -j Single_Asin_Multi_Product.zip src/SP/Single_Asin_Multi_Product/lambda_function.py
+          aws lambda update-function-code --function-name Single_Asin_Multi_Product --zip-file fileb://Single_Asin_Multi_Product.zip
+
+          zip -j Single_Assign_Single_Keywords.zip src/SP/Single_Assign_Single_Keywords/lambda_function.py
+          aws lambda update-function-code --function-name Single_Assign_Single_Keywords --zip-file fileb://Single_Assign_Single_Keywords.zip
+
+          zip -j Single_Asin_Single_Product.zip src/SP/Single_Asin_Single_Product/lambda_function.py
+          aws lambda update-function-code --function-name Single_Asin_Single_Product --zip-file fileb://Single_Asin_Single_Product.zip
+
+          zip -j Multi_asin_Multi_Keywords.zip src/SP/Multi_asin_Multi_Keywords/lambda_function.py
+          aws lambda update-function-code --function-name Multi_asin_Multi_Keywords --zip-file fileb://Multi_asin_Multi_Keywords.zip
+
+          zip -j Multi_Asin_Multi_Product.zip src/SP/Multi_Asin_Multi_Product/lambda_function.py
+          aws lambda update-function-code --function-name Multi_Asin_Multi_Product --zip-file fileb://Multi_Asin_Multi_Product.zip
+
           zip -j Single_Assign_Multi_Keyword.zip src/SP/Single_Assign_Multi_Keyword/lambda_function.py
           aws lambda update-function-code --function-name Single_Assign_Multi_Keyword --zip-file fileb://Single_Assign_Multi_Keyword.zip
 
