@@ -48,16 +48,16 @@ jobs:
 
           # SD
 
-          zip -j SD-Retarget.zip src/SP/SD-Retarget/lambda_function.py
+          zip -j SD-Retarget.zip src/SD/SD-Retarget/lambda_function.py
           aws lambda update-function-code --function-name SD-Retarget --zip-file fileb://SD-Retarget.zip
 
-          zip -j SD-Audience.zip src/SP/SD-Audience/lambda_function.py
+          zip -j SD-Audience.zip src/SD/SD-Audience/lambda_function.py
           aws lambda update-function-code --function-name SD-Audience --zip-file fileb://SD-Audience.zip
 
-          zip -j SD-Contextual-Prod.zip src/SP/SD-Contextual-Prod/lambda_function.py
+          zip -j SD-Contextual-Prod.zip src/SD/SD-Contextual-Prod/lambda_function.py
           aws lambda update-function-code --function-name SD-Contextual-Prod --zip-file fileb://SD-Contextual-Prod.zip
 
-          zip -j SD-Contextual-Category.zip src/SP/SD-Contextual-Category/lambda_function.py
+          zip -j SD-Contextual-Category.zip src/SD/SD-Contextual-Category/lambda_function.py
           aws lambda update-function-code --function-name SD-Contextual-Category --zip-file fileb://SD-Contextual-Category.zip
 
 
