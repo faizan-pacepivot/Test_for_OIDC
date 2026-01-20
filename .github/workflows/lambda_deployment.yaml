@@ -36,7 +36,7 @@ jobs:
           aws lambda update-function-code --function-name SD-Contextual-Category --zip-file fileb://SD-Contextual-Category.zip
 
                     # Campaign 2
-          zip -j SD-Contextual-Category.zip src/SP/Single_Assign_Multi_Keyword/lambda_function.py
+          zip -j Single_Assign_Multi_Keyword.zip src/SP/Single_Assign_Multi_Keyword/lambda_function.py
           aws lambda update-function-code --function-name Single_Assign_Multi_Keyword --zip-file fileb://Single_Assign_Multi_Keyword.zip
 
 
