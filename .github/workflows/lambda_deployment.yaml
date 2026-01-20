@@ -47,7 +47,6 @@ jobs:
           aws lambda update-function-code --function-name Single_Assign_Multi_Keyword --zip-file fileb://Single_Assign_Multi_Keyword.zip
 
           # SD
-
           zip -j SD-Retarget.zip src/SD/SD-Retarget/lambda_function.py
           aws lambda update-function-code --function-name SD-Retarget --zip-file fileb://SD-Retarget.zip
 
@@ -63,7 +62,7 @@ jobs:
 
       - name: Verify Lambda updates
         run: |
-        # SP
+          # SP
           aws lambda get-function --function-name SD-Audience
           aws lambda get-function --function-name SD-Contextual-Category
           aws lambda get-function --function-name Single_Asin_Multi_Product
@@ -73,7 +72,7 @@ jobs:
           aws lambda get-function --function-name Multi_Asin_Multi_Product
           aws lambda get-function --function-name Single_Assign_Multi_Keyword
 
-        # SD
+          # SD
           aws lambda get-function --function-name SD-Retarget
           aws lambda get-function --function-name SD-Audience
           aws lambda get-function --function-name SD-Contextual-Prod
