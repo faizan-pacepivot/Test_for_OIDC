@@ -1,20 +1,45 @@
 import requests
 # from datetime import datetime, timedelta
 import os
+import boto3
 # import time
 import json
-from dotenv import load_dotenv
+# Faizan
+# from dotenv import load_dotenv
+# Get Credentials from s3 from client_1
+def load_credentials_from_s3(client_code):
+    bucket_name = "ads-credentials-bucket-prod"
+    key = f"clients/{client_code}/credentials.json"
+
+    s3 = boto3.client("s3")
+
+    try:
+        response = s3.get_object(
+            Bucket=bucket_name,
+            Key=key
+        )
+        creds = json.loads(
+            response["Body"].read().decode("utf-8")
+        )
+
+        return creds
+
+    except s3.exceptions.NoSuchKey:
+        raise Exception(f"Credentials file not found for client: {client_code}")
+
+    except Exception as e:
+        raise Exception(f"S3 credential load failed: {str(e)}")
 # ------------------ ACCESS TOKEN ------------------
-load_dotenv()
-def get_access_token():
+# load_dotenv()
+def get_access_token(creds):
     url = "https://api.amazon.co.uk/auth/o2/token"
     data = {
         "grant_type": "refresh_token",
-        "client_id": os.environ['client_id'],
-        "client_secret": os.environ['client_secret'],
-        "refresh_token": os.environ['refresh_token'],
+        "client_id": creds['client_id'],
+        "client_secret": creds['client_secret'],
+        "refresh_token": creds['refresh_token'],
         "scope": "profile",
-        "profile_id": os.environ['profile_id']
+        "profile_id": creds['profile_id']
     }
 
     r = requests.post(url, data=data)
@@ -25,34 +50,37 @@ def get_access_token():
 
     return r.json()["access_token"]
 
-# ------------------ TOYS AUDIENCE DISCOVERY ------------------
-def discover_toys_audiences(access_token):
-    """Find Toys audience IDs automatically"""
-    url = "https://advertising-api-eu.amazon.com/audiences/list"
+# --------------------- Get Camapign Id ----------------------------
+
+def get_campaign_id_by_name(access_token, creds, campaign_name):
+    url = "https://advertising-api-eu.amazon.com/sd/campaigns"
+
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Amazon-Advertising-API-ClientId": os.environ['client_id'],
-        "Amazon-Advertising-API-Scope": os.environ['profile_id'],
-        "Content-Type": "application/json"
+        "Amazon-Advertising-API-ClientId": creds["client_id"],
+        "Amazon-Advertising-API-Scope": creds["profile_id"],
+        "Accept": "application/json"
     }
-    
-    payload = {
-        "adType": "SD",
-        "filters": [
-            {"field": "category", "values": ["In-market"]},
-            {"field": "audienceName", "values": ["toy", "toys", "doll", "action figure"]}
-        ]
+
+    params = {
+        "stateFilter": "enabled,paused"
     }
-    
-    print("🔍 Discovering TOYS Audiences...")
-    r = requests.post(url, headers=headers, json=payload)
-    audiences = r.json().get('audiences', [])
-    
-    print("✅ TOYS AUDIENCES FOUND:")
-    for audience in audiences[:5]:
-        print(f"  ID: {audience['audienceId']} | {audience['audienceName']}")
-    
-    return audiences[0]['audienceId'] if audiences else None
+
+    r = requests.get(url, headers=headers, params=params)
+
+    if r.status_code != 200:
+        raise Exception(f"Failed to fetch campaigns: {r.text}")
+
+    campaigns = r.json()
+
+    for camp in campaigns:
+        if camp.get("name") == campaign_name:
+            return camp.get("campaignId")
+
+    return None
+
+
+
 
 
 # ------------------ CAMPAIGN ------------------
@@ -72,12 +100,12 @@ def build_Campaign_Payload_SD_Audience(name, budgetType, budget, startDate, stat
 
             }]
 
-def create_campaign(access_token, name, budgetType, budget, startDate, state, tactic):
+def create_campaign(access_token, creds, name, budgetType, budget, startDate, state, tactic):
     url = "https://advertising-api-eu.amazon.com/sd/campaigns"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Amazon-Advertising-API-ClientId": os.environ['client_id'],
-        "Amazon-Advertising-API-Scope": os.environ['profile_id'],
+        "Amazon-Advertising-API-ClientId": creds['client_id'],
+        "Amazon-Advertising-API-Scope": creds['profile_id'],
         "Content-Type": "application/json",
         "Accept": "application/json",
         # "x-amzn-advertising-api-version": "v3" 
@@ -86,34 +114,29 @@ def create_campaign(access_token, name, budgetType, budget, startDate, state, ta
     payload = build_Campaign_Payload_SD_Audience(name, budgetType, budget, startDate, state, tactic)
     print("✅ Payload:", json.dumps(payload, indent=2))
 
-    response = requests.post(url, headers=headers, json=payload)
+    r = requests.post(url, headers=headers, json=payload)
+    print("Create Campaign Response:", r.text)
 
-    print("Status:", response.status_code)
-    print("RAW Response:", response.text)
+    if r.status_code not in [200, 207]:
+        raise Exception(r.text)
 
-    if response.status_code not in [200, 207]:
-        raise Exception(response.text)
+    # 🔥 IMPORTANT FIX
+    campaign_id = get_campaign_id_by_name(access_token, creds, name)
 
-    data = response.json()
-    print("Parsed JSON:", json.dumps(data, indent=2))
+    if not campaign_id:
+        raise Exception("Campaign created but campaignId not retrievable")
 
-    # ✅ SD response handling (NEW FORMAT)
-    if isinstance(data, list) and len(data) > 0:
-        if data[0].get("code") == "SUCCESS":
-            campaign_id = data[0]["campaignId"]
-            print(f"✅ Campaign created: {campaign_id}")
-            return campaign_id
-
-    raise Exception("Campaign created but campaignId not found")
+    print(f"✅ Campaign ID fetched via GET: {campaign_id}")
+    return campaign_id
 
 
 # ------------------ AD GROUP ------------------
-def create_ad_group(access_token, name, cid, defaultBid, bidOptimization, state):
+def create_ad_group(access_token, creds, name, cid, defaultBid, bidOptimization, state):
     url = "https://advertising-api-eu.amazon.com/sd/adGroups"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Amazon-Advertising-API-ClientId": os.environ['client_id'],
-        "Amazon-Advertising-API-Scope": os.environ['profile_id'],
+        "Amazon-Advertising-API-ClientId": creds['client_id'],
+        "Amazon-Advertising-API-Scope": creds['profile_id'],
         "Content-Type": "application/json",
         "Accept": "application/json"
     }
@@ -149,12 +172,12 @@ def create_ad_group(access_token, name, cid, defaultBid, bidOptimization, state)
 
 
 # ---------------------- Product ad ----------------------
-def create_product_ad(cid, agid, sku, access_token, state):
+def create_product_ad(cid, agid, sku, asin, access_token, creds, state):
     url = "https://advertising-api-eu.amazon.com/sd/productAds"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Amazon-Advertising-API-ClientId": os.environ['client_id'],
-        "Amazon-Advertising-API-Scope": os.environ['profile_id'],
+        "Amazon-Advertising-API-ClientId": creds['client_id'],
+        "Amazon-Advertising-API-Scope": creds['profile_id'],
         "Content-Type": "application/json",
         "Accept": "application/json"
     }
@@ -163,7 +186,7 @@ def create_product_ad(cid, agid, sku, access_token, state):
             {
                 "campaignId": cid,
                 "adGroupId": agid,
-                # "asin": asin,
+                "asin": asin,
                 "sku": sku,
                 "state": state
             }
@@ -193,27 +216,34 @@ def create_product_ad(cid, agid, sku, access_token, state):
     raise Exception("Product Ad created but adId not found")
 
 # ---------------------Audience Targeting -----------------------------
-def create_toys_audience_targeting(access_token, agid, audience_id, bid, state):
+def create_toys_audience_targeting(access_token, creds, agid, bid, state, asin):
     url = "https://advertising-api-eu.amazon.com/sd/targets"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Amazon-Advertising-API-ClientId": os.environ['client_id'],
-        "Amazon-Advertising-API-Scope": os.environ['profile_id'],
+        "Amazon-Advertising-API-ClientId": creds['client_id'],
+        "Amazon-Advertising-API-Scope": creds['profile_id'],
         "Content-Type": "application/json",
         "Accept": "application/json"
     }
     payload = [{
         "adGroupId": agid,
-        "expression": [{
-            "type": "audience",
-            "value": [{
-                "type": "audienceSameAs",
-                "value": audience_id
-            }]
-        }],
+        "expressionType": "manual",
+    "expression": [
+      {
+        "type": "views",
+        "value": [
+          {
+            "type": "similarProduct"
+          },
+          {
+            "type": "lookback",
+            "value": "30"
+          }
+        ]
+      }
+    ],
         "bid": float(bid),
-        "state": state,
-        "expressionType": "manual"
+        "state": state
     }]
     
     print("🎯 TOYS AUDIENCE Payload:", json.dumps(payload, indent=2))
@@ -226,53 +256,76 @@ def create_toys_audience_targeting(access_token, agid, audience_id, bid, state):
 
 # ------------------ LAMBDA HANDLER ------------------
 def lambda_handler(event, context):
+    budget = event.get("budget")
+    budgetType = event.get("budgetType")
+    startDate = event.get("startDate")
+    tactic = event.get("tactic")
+    state = event.get("state")
+    defaultBid = event.get("defaultBid")
+    bidOptimization = event.get("bidOptimization")
+    asin = event.get("asin")
+    sku = event.get("sku")
+    endDate = event.get("endDate")
+    portfolioId = event.get("portfolioId")
+    costType = event.get("costType")
+    bid = event.get("bid")
+    bid_retarget = event.get("bid_retarget")
+    bid_audience = event.get("bid_audience")
+    campaign_name = event.get("campaignName")
+    ad_group_name = event.get("adGroupName")
+    client_code = event.get("client_code")
+    if not client_code:
+        raise Exception("client_code missing in event")
+    creds = load_credentials_from_s3(client_code)
 
-    budget = "200.00"
-    budgetType = "daily"
-    startDate = "20260108"
-    tactic = "T00030"
-    state = "paused"
-    defaultBid = 1
-    bidOptimization = "clicks"
-    asin = "B009GCTZWC"
-    sku = "BI-CGOZ-MFIV"
-    endDate = "20270108"
-    portfolioId = "null"
-    costType = "cpc"
-    bid = 2.0
-    bid_retarget = "2.0"
-    bid_audience = "1.5"
-    access_token = get_access_token()
+
+    
+    # budget = "200.00"
+    # budgetType = "daily"
+    # startDate = "20260108"
+    # tactic = "T00030"
+    # state = "paused"
+    # defaultBid = 1
+    # bidOptimization = "clicks"
+    # asin = "B009GCTZWC"
+    # sku = "BI-CGOZ-MFIV"
+    # endDate = "20270108"
+    # portfolioId = "null"
+    # costType = "cpc"
+    # bid = 2.0
+    # bid_retarget = "2.0"
+    # bid_audience = "1.5"
+    access_token = get_access_token(creds)
     # audience_id = get_sd_audience_id(access_token)
     # if not audience_id:
     #     return {"error": "No SD audience found"}
     
 
-    cid = create_campaign(access_token, "Faizan_SD_5t", budgetType, budget, startDate,  state, tactic)
-    # print("Payload:", payload)
+    cid = create_campaign(access_token, creds, campaign_name, budgetType, budget, startDate,  state, tactic)
     
-    agid = create_ad_group(access_token, "Lambda Ad Group 2", cid, defaultBid, bidOptimization, state)
-    pid = create_product_ad(cid, agid, sku, access_token, state)
+    
+    agid = create_ad_group(access_token, creds, campaign_name, cid, defaultBid, bidOptimization, state)
+    pid = create_product_ad(cid, agid, sku, asin, access_token, creds, state)
     # 5. TOYS AUDIENCE (FIXED!)
-    toys_audience_id = discover_toys_audiences(access_token)
-    audience_result = None
+    # toys_audience_id = discover_toys_audiences(access_token)
+    # audience_result = None
     
-    if toys_audience_id:
-        print(f"🎯 Using Toys Audience ID: {toys_audience_id}")
-        audience_result = create_toys_audience_targeting(access_token, agid, toys_audience_id, bid_audience, state)
-    else:
-        print("⚠️ No Toys audience found - using retargeting only")
+    # if toys_audience_id:
+    #     print(f"🎯 Using Toys Audience ID: {toys_audience_id}")
+    audience_result = create_toys_audience_targeting(access_token, creds, agid, bid_audience, state, asin)
+    # else:
+    #     print("⚠️ No Toys audience found - using retargeting only")
     
     return {
         "campaignId": cid,
         "adGroupId": agid,
         "ProductAd": pid,  
-        "toysAudienceId": toys_audience_id,
+        # "toysAudienceId": toys_audience_id,
         "toysAudienceResult": audience_result
     }
 
 # ------------------ LOCAL TEST ------------------
-if __name__ == "__main__":
-    print("DEBUG STARTED")
-    result = lambda_handler({}, {})
-    print("FINAL RESULT:", result)
+# if __name__ == "__main__":
+#     print("DEBUG STARTED")
+#     result = lambda_handler({}, {})
+#     print("FINAL RESULT:", result)
